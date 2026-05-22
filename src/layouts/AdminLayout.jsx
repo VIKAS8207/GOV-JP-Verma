@@ -40,7 +40,7 @@ export default function AdminLayout() {
           
           {/* Left: Logo & College Name */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white rounded-lg border border-orange-200 shadow-sm flex items-center justify-center overflow-hidden">
+            <div className="w-15 h-15 bg-white  flex items-center justify-center overflow-hidden">
     <img 
       src="/image/logo.png" /* <-- Put your image path or URL here */
       alt="College Logo" 
