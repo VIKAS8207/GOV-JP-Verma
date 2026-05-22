@@ -77,7 +77,7 @@ export default function Portal() {
             
             {/* Subheadline */}
             <p className="text-gray-700/80 max-w-lg mb-10 text-[16px] leading-relaxed">
-              Access your dashboard to manage transactions, track payments, and update your billing details—all in one place.
+              Access your dashboard to manage transactions, track payments, and update your billing details all in one place.
             </p>
 
             {/* --- Form Section --- */}
