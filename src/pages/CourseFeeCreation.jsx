@@ -2,21 +2,36 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Expanded mock data to fit the new table structure
+// Mock data structured to match the new detailed breakdown
 const initialFees = [
   { 
-    id: 1, course: 'B.Tech Computer Science', year: '1st Year', semester: '1st Sem', gender: 'All', category: 'General',
-    feeHeads: [{ id: 101, name: 'Tuition Fee', amount: 45000 }, { id: 102, name: 'Exam Fee', amount: 2500 }] 
+    id: 1, course: 'B.A First Year', gender: 'Male / Female Both', caste: 'OBC/UR',
+    fees: {
+      govt: { addFee: 500, sta: 300, practical: 0, tuition: 15000 },
+      nonGovt: { pd_af: 1200, cm: 800, reentry: 0 },
+      others: { jb: 400, sf: 200 }
+    }
   },
   { 
-    id: 2, course: 'B.Tech Computer Science', year: '1st Year', semester: '1st Sem', gender: 'All', category: 'SC/ST',
-    feeHeads: [{ id: 103, name: 'Tuition Fee', amount: 15000 }, { id: 104, name: 'Exam Fee', amount: 2500 }] 
-  },
-  { 
-    id: 3, course: 'MBA', year: '1st Year', semester: '1st Sem', gender: 'Female', category: 'All',
-    feeHeads: [{ id: 105, name: 'Tuition Fee', amount: 35000 }, { id: 106, name: 'Library Fee', amount: 1000 }] 
-  },
+    id: 2, course: 'B.SC .B.C.A first year', gender: 'Female', caste: 'SC/ST',
+    fees: {
+      govt: { addFee: 500, sta: 300, practical: 2000, tuition: 0 },
+      nonGovt: { pd_af: 1200, cm: 800, reentry: 0 },
+      others: { jb: 400, sf: 200 }
+    }
+  }
 ];
+
+// Helper to calculate total for a specific fee record
+const getFeeTotal = (feesObj) => {
+  let total = 0;
+  ['govt', 'nonGovt', 'others'].forEach(sec => {
+    Object.values(feesObj[sec]).forEach(val => {
+      total += Number(val) || 0;
+    });
+  });
+  return total;
+};
 
 export default function CourseFeeCreation() {
   const [fees, setFees] = useState(initialFees);
@@ -28,61 +43,67 @@ export default function CourseFeeCreation() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Form States
-  const [formData, setFormData] = useState({
+  // Initial Empty State
+  const defaultFormState = {
     course: '',
-    year: '',
-    semester: '',
-    gender: 'All',
-    category: 'All'
-  });
+    caste: '',
+    gender: '',
+    fees: {
+      govt: { addFee: '', sta: '', practical: '', tuition: '' },
+      nonGovt: { pd_af: '', cm: '', reentry: '' },
+      others: { jb: '', sf: '' }
+    }
+  };
 
-  // Dynamic Fee Heads State
-  const [feeHeads, setFeeHeads] = useState([
-    { id: Date.now(), name: '', amount: '' }
-  ]);
-
-  // Calculate dynamic total
-  const currentTotal = feeHeads.reduce((sum, head) => sum + (Number(head.amount) || 0), 0);
+  const [formData, setFormData] = useState(defaultFormState);
 
   // --- HANDLERS ---
-  const handleFormChange = (e) => {
+  const handleTopLevelChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFeeHeadChange = (id, field, value) => {
-    setFeeHeads(feeHeads.map(head => 
-      head.id === id ? { ...head, [field]: value } : head
-    ));
-  };
-
-  const addFeeHead = () => {
-    setFeeHeads([...feeHeads, { id: Date.now(), name: '', amount: '' }]);
-  };
-
-  const removeFeeHead = (id) => {
-    if (feeHeads.length > 1) {
-      setFeeHeads(feeHeads.filter(head => head.id !== id));
-    }
+  const handleFeeChange = (section, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      fees: {
+        ...prev.fees,
+        [section]: {
+          ...prev.fees[section],
+          [field]: value
+        }
+      }
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Filter out completely empty fee heads before saving
-    const validFeeHeads = feeHeads.filter(head => head.name.trim() !== '' && head.amount !== '');
-    
-    if (validFeeHeads.length === 0) {
-      alert("Please add at least one valid fee component with an amount.");
-      return;
-    }
+    // Process form data to ensure empty fields become 0
+    const processedFees = {
+      govt: {
+        addFee: Number(formData.fees.govt.addFee) || 0,
+        sta: Number(formData.fees.govt.sta) || 0,
+        practical: Number(formData.fees.govt.practical) || 0,
+        tuition: Number(formData.fees.govt.tuition) || 0,
+      },
+      nonGovt: {
+        pd_af: Number(formData.fees.nonGovt.pd_af) || 0,
+        cm: Number(formData.fees.nonGovt.cm) || 0,
+        reentry: Number(formData.fees.nonGovt.reentry) || 0,
+      },
+      others: {
+        jb: Number(formData.fees.others.jb) || 0,
+        sf: Number(formData.fees.others.sf) || 0,
+      }
+    };
+
+    const finalData = { ...formData, fees: processedFees };
 
     if (editId) {
-      setFees(fees.map(f => f.id === editId ? { ...formData, feeHeads: validFeeHeads, id: editId } : f));
+      setFees(fees.map(f => f.id === editId ? { ...finalData, id: editId } : f));
       setEditId(null);
     } else {
-      const newFee = { id: Date.now(), ...formData, feeHeads: validFeeHeads };
-      setFees([newFee, ...fees]);
+      setFees([{ id: Date.now(), ...finalData }, ...fees]);
     }
     resetForm();
   };
@@ -90,12 +111,14 @@ export default function CourseFeeCreation() {
   const handleEdit = (feeItem) => {
     setFormData({
       course: feeItem.course,
-      year: feeItem.year,
-      semester: feeItem.semester,
-      gender: feeItem.gender || 'All',
-      category: feeItem.category || 'All'
+      caste: feeItem.caste,
+      gender: feeItem.gender,
+      fees: {
+        govt: { ...feeItem.fees.govt },
+        nonGovt: { ...feeItem.fees.nonGovt },
+        others: { ...feeItem.fees.others }
+      }
     });
-    setFeeHeads(feeItem.feeHeads.length > 0 ? feeItem.feeHeads : [{ id: Date.now(), name: '', amount: '' }]);
     setEditId(feeItem.id);
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -109,8 +132,7 @@ export default function CourseFeeCreation() {
   };
 
   const resetForm = () => {
-    setFormData({ course: '', year: '', semester: '', gender: 'All', category: 'All' });
-    setFeeHeads([{ id: Date.now(), name: '', amount: '' }]);
+    setFormData(defaultFormState);
     setIsFormOpen(false);
     setEditId(null);
   };
@@ -118,23 +140,38 @@ export default function CourseFeeCreation() {
   // --- SEARCH & PAGINATION LOGIC ---
   const filteredFees = fees.filter(fee => 
     fee.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    fee.category.toLowerCase().includes(searchTerm.toLowerCase())
+    fee.caste.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredFees.length / itemsPerPage);
   const paginatedFees = filteredFees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  // Reusable Input Component for Fees
+  const FeeInput = ({ section, field, label }) => (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">{label}</label>
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+        <input
+          type="number"
+          min="0"
+          placeholder="0"
+          value={formData.fees[section][field]}
+          onChange={(e) => handleFeeChange(section, field, e.target.value)}
+          className="w-full pl-8 pr-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 focus:bg-white transition-all font-medium text-gray-900"
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full max-w-[1600px] mx-auto"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-[1600px] mx-auto">
+      
       {/* --- HEADER SECTION --- */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-extrabold text-[#111111] tracking-tight">Fee Structure</h2>
-          <p className="text-gray-500 mt-1">Define pricing rules and fee breakdowns for academic courses.</p>
+          <h2 className="text-3xl font-extrabold text-[#111111] tracking-tight">Fee Structure Master</h2>
+          <p className="text-gray-500 mt-1">Configure highly detailed pricing rules for academic courses.</p>
         </div>
         
         <button 
@@ -153,7 +190,7 @@ export default function CourseFeeCreation() {
         </button>
       </div>
 
-      {/* --- EXPANDABLE FORM SECTION --- */}
+      {/* --- EXPANDABLE PROGRESSIVE FORM SECTION --- */}
       <AnimatePresence>
         {isFormOpen && (
           <motion.div
@@ -162,151 +199,118 @@ export default function CourseFeeCreation() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-8"
           >
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-8 flex items-center gap-2">
                 <span className="w-2 h-6 bg-[#EE6132] rounded-full"></span>
                 {editId ? 'Update Fee Structure' : 'Create New Fee Structure'}
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-8">
                 
-                {/* Academic Target Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Course <span className="text-red-500">*</span></label>
-                    <select
-                      name="course" value={formData.course} onChange={handleFormChange} required
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Course</option>
-                      <option value="B.Tech Computer Science">B.Tech Computer Science</option>
-                      <option value="B.Tech Civil">B.Tech Civil</option>
-                      <option value="MBA">MBA</option>
-                      <option value="BCA">BCA</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Year <span className="text-red-500">*</span></label>
-                    <select
-                      name="year" value={formData.year} onChange={handleFormChange} required
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Semester <span className="text-red-500">*</span></label>
-                    <select
-                      name="semester" value={formData.semester} onChange={handleFormChange} required
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Semester</option>
-                      <option value="1st Sem">1st Sem</option>
-                      <option value="2nd Sem">2nd Sem</option>
-                      <option value="Both (Yearly)">Both (Yearly)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Demographic Filters (Optional) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Gender Applied (Optional)</label>
-                    <select
-                      name="gender" value={formData.gender} onChange={handleFormChange}
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                    >
-                      <option value="All">All Genders</option>
-                      <option value="Male">Male Only</option>
-                      <option value="Female">Female Only</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Category Applied (Optional)</label>
-                    <select
-                      name="category" value={formData.category} onChange={handleFormChange}
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                    >
-                      <option value="All">All Categories</option>
-                      <option value="General">General</option>
-                      <option value="OBC">OBC</option>
-                      <option value="SC/ST">SC/ST</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Dynamic Fee Heads Section */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Fee Component Breakdown</h4>
-                    <button 
-                      type="button" 
-                      onClick={addFeeHead}
-                      className="text-[#EE6132] text-sm font-bold hover:text-[#d9562a] flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-orange-100"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"></path></svg>
-                      Add Component
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    <AnimatePresence>
-                      {feeHeads.map((head, index) => (
-                        <motion.div 
-                          key={head.id}
-                          initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                          className="flex items-center gap-4"
-                        >
-                          <input
-                            type="text"
-                            placeholder="Fee Name (e.g. Tuition Fee)"
-                            value={head.name}
-                            onChange={(e) => handleFeeHeadChange(head.id, 'name', e.target.value)}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-[#EE6132] transition-colors font-medium text-gray-900 placeholder-gray-400"
-                            required
-                          />
-                          <div className="relative w-1/3 min-w-[150px]">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={head.amount}
-                              onChange={(e) => handleFeeHeadChange(head.id, 'amount', e.target.value)}
-                              className="w-full pl-8 pr-4 py-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-[#EE6132] transition-colors font-medium text-gray-900 placeholder-gray-400"
-                              required
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFeeHead(head.id)}
-                            disabled={feeHeads.length === 1}
-                            className="shrink-0 p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                          </button>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                {/* Footer / Total / Submit */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-6 pt-4 border-t border-gray-100">
-                  <div className="text-left w-full sm:w-auto">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Computed Fee</p>
-                    <p className="text-3xl font-extrabold text-[#111111]">₹{currentTotal.toLocaleString('en-IN')}</p>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto px-10 py-3.5 bg-[#111111] text-white font-bold text-sm rounded-lg hover:bg-gray-800 transition-colors shadow-md"
+                {/* Initial Step: Course Selection */}
+                <div className="max-w-xl">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Target Course <span className="text-red-500">*</span></label>
+                  <select
+                    name="course" value={formData.course} onChange={handleTopLevelChange} required
+                    className="w-full px-4 py-3.5 mt-1.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-bold text-gray-900 appearance-none shadow-sm cursor-pointer"
                   >
-                    {editId ? 'Update Structure' : 'Save Structure'}
-                  </button>
+                    <option value="" disabled>Select Target Course First...</option>
+                    <option value="B.A First Year">B.A First Year</option>
+                    <option value="BA FIRST YEAR HOME SCIENCE">BA FIRST YEAR HOME SCIENCE</option>
+                    <option value="B.SC .B.C.A first year">B.SC .B.C.A first year</option>
+                    <option value="B.Sc. B.C.A Secound / Third Renewal">B.Sc. B.C.A Secound / Third Renewal</option>
+                    <option value="B.com First year">B.com First year</option>
+                    <option value="B.com Second / Third Renewal">B.com Second / Third Renewal</option>
+                  </select>
                 </div>
+
+                {/* Progressive Expansion: Only show details if course is selected */}
+                <AnimatePresence>
+                  {formData.course && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                      className="space-y-10 border-t border-gray-100 pt-8"
+                    >
+                      
+                      {/* Demographics */}
+                      <div>
+                        <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">1. Apply Demographics</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Caste Category <span className="text-red-500">*</span></label>
+                            <select name="caste" value={formData.caste} onChange={handleTopLevelChange} required className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-medium text-gray-900 appearance-none cursor-pointer">
+                              <option value="" disabled>Select Caste</option>
+                              <option value="SC/ST">SC / ST</option>
+                              <option value="OBC/UR">OBC / UR</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Gender Rule <span className="text-red-500">*</span></label>
+                            <select name="gender" value={formData.gender} onChange={handleTopLevelChange} required className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-medium text-gray-900 appearance-none cursor-pointer">
+                              <option value="" disabled>Select Gender</option>
+                              <option value="Male">Male Only</option>
+                              <option value="Female">Female Only</option>
+                              <option value="Male / Female Both">Male / Female Both</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Government Fees */}
+                      <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                        <h4 className="text-sm font-black text-[#EE6132] uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                          Government Section
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          <FeeInput section="govt" field="addFee" label="Add. Fee" />
+                          <FeeInput section="govt" field="sta" label="STA" />
+                          <FeeInput section="govt" field="practical" label="Practical" />
+                          <FeeInput section="govt" field="tuition" label="Tuition Fee" />
+                        </div>
+                      </div>
+
+                      {/* Non-Government Fees */}
+                      <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                        <h4 className="text-sm font-black text-gray-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                          Non-Government Section
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <FeeInput section="nonGovt" field="pd_af" label="PD / AF" />
+                          <FeeInput section="nonGovt" field="cm" label="CM" />
+                          <FeeInput section="nonGovt" field="reentry" label="Re-entry" />
+                        </div>
+                      </div>
+
+                      {/* Other Fees & Submission */}
+                      <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+                        <div className="w-full md:w-1/2 p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                          <h4 className="text-sm font-black text-gray-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            Other Section
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FeeInput section="others" field="jb" label="JB" />
+                            <FeeInput section="others" field="sf" label="SF" />
+                          </div>
+                        </div>
+
+                        <div className="w-full md:w-auto shrink-0 pb-2">
+                          <div className="text-right mb-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Computed Total</p>
+                            <p className="text-4xl font-extrabold text-[#111111] font-mono tracking-tight">₹{getFeeTotal(formData.fees).toLocaleString()}</p>
+                          </div>
+                          <button type="submit" className="w-full px-12 py-4 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-lg flex justify-center items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            {editId ? 'Update Fee Structure' : 'Save Structure to Database'}
+                          </button>
+                        </div>
+                      </div>
+
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
               </form>
             </div>
@@ -315,85 +319,74 @@ export default function CourseFeeCreation() {
       </AnimatePresence>
 
       {/* --- TABLE LIST SECTION --- */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         
         {/* Table Toolbar */}
-        <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="relative w-full sm:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
+          <div className="relative w-full sm:w-96">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
             <input
               type="text"
-              placeholder="Search by course or category..."
+              placeholder="Search by course or caste..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors text-sm font-medium text-gray-900 placeholder-gray-400"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-medium text-gray-900 shadow-sm"
             />
           </div>
-          <span className="px-4 py-1.5 bg-orange-50 text-[#EE6132] text-xs font-bold rounded-lg border border-orange-100 shrink-0">
-            {filteredFees.length} Structures
+          <span className="px-4 py-2 bg-orange-50 text-[#EE6132] text-xs font-extrabold uppercase tracking-widest rounded-lg border border-orange-100 shrink-0 shadow-sm">
+            {filteredFees.length} Master Records
           </span>
         </div>
 
         {/* Table Data */}
         <div className="overflow-x-auto flex-grow">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50/80">
+            <thead className="bg-white">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest w-16">S.No</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Course Targets</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Demographics</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Breakdown & Total</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
+                <th className="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest w-16">S.No</th>
+                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Course Focus</th>
+                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Target Demographics</th>
+                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Fee Aggregation</th>
+                <th className="px-8 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               <AnimatePresence>
                 {paginatedFees.map((fee, index) => {
-                  const itemTotal = fee.feeHeads.reduce((sum, h) => sum + Number(h.amount), 0);
+                  const total = getFeeTotal(fee.fees);
                   return (
                     <motion.tr 
                       key={fee.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -10 }}
-                      className="hover:bg-orange-50/40 transition-colors group"
+                      className="hover:bg-orange-50/30 transition-colors group"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-400">
+                      <td className="px-8 py-5 whitespace-nowrap text-sm font-bold text-gray-400">
                         {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-5">
                         <p className="text-sm font-bold text-gray-900">{fee.course}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{fee.year} • {fee.semester}</p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-5 whitespace-nowrap">
                         <div className="flex gap-2">
-                           <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded border border-gray-200">{fee.category}</span>
-                           <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded border border-gray-200">{fee.gender}</span>
+                           <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.caste}</span>
+                           <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.gender}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1.5 mb-2 max-w-[300px]">
-                          {fee.feeHeads.map(head => (
-                            <span key={head.id} className="px-2 py-0.5 bg-gray-50 border border-gray-200 text-gray-500 text-[11px] font-semibold rounded whitespace-nowrap">
-                              {head.name}: ₹{Number(head.amount).toLocaleString('en-IN')}
-                            </span>
-                          ))}
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-4">
+                          <p className="text-base font-black text-[#EE6132] font-mono tracking-tight">₹{total.toLocaleString('en-IN')}</p>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base Total</span>
                         </div>
-                        <p className="text-sm font-bold text-[#EE6132]">Total: ₹{itemTotal.toLocaleString('en-IN')}</p>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <td className="px-8 py-5 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => handleEdit(fee)}
-                            className="p-1.5 text-gray-400 hover:text-[#EE6132] bg-white hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-md transition-all"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                          <button onClick={() => handleEdit(fee)} className="p-2 text-gray-400 hover:text-[#EE6132] bg-white hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-lg transition-all shadow-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                           </button>
-                          <button 
-                            onClick={() => handleDelete(fee.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 bg-white hover:bg-red-50 border border-transparent hover:border-red-200 rounded-md transition-all"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          <button onClick={() => handleDelete(fee.id)} className="p-2 text-gray-400 hover:text-red-600 bg-white hover:bg-red-50 border border-transparent hover:border-red-200 rounded-lg transition-all shadow-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                           </button>
                         </div>
                       </td>
@@ -405,45 +398,28 @@ export default function CourseFeeCreation() {
           </table>
           
           {paginatedFees.length === 0 && (
-            <div className="py-16 text-center text-gray-400 bg-gray-50/50">
-              <svg className="w-10 h-10 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <p className="text-sm font-medium">No fee structures found matching your search.</p>
+            <div className="py-20 text-center text-gray-400 bg-gray-50/50">
+              <svg className="w-12 h-12 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <p className="text-sm font-bold">No fee structures found matching your search.</p>
             </div>
           )}
         </div>
 
         {/* --- PAGINATION FOOTER --- */}
         {totalPages > 0 && (
-          <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredFees.length)} of {filteredFees.length} entries
+          <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredFees.length)} of {filteredFees.length}
             </span>
             
             <div className="flex gap-2">
-              <button 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-                className="px-3 py-1.5 border border-gray-200 rounded-md text-xs font-bold text-gray-600 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed bg-transparent"
-              >
-                Previous
-              </button>
-              
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-white disabled:opacity-50 transition-colors bg-transparent shadow-sm">Previous</button>
               <div className="flex items-center gap-1">
                 {Array.from({ length: totalPages }).map((_, idx) => (
-                  <button
-                    key={idx + 1} onClick={() => setCurrentPage(idx + 1)}
-                    className={`w-8 h-8 rounded-md text-xs font-bold transition-all ${currentPage === idx + 1 ? 'bg-[#111111] text-white' : 'text-gray-500 hover:bg-white border border-transparent hover:border-gray-200'}`}
-                  >
-                    {idx + 1}
-                  </button>
+                  <button key={idx + 1} onClick={() => setCurrentPage(idx + 1)} className={`w-9 h-9 rounded-lg text-xs font-bold transition-all shadow-sm ${currentPage === idx + 1 ? 'bg-[#111111] text-white' : 'text-gray-700 hover:bg-white border border-gray-200'}`}>{idx + 1}</button>
                 ))}
               </div>
-
-              <button 
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-                className="px-3 py-1.5 border border-gray-200 rounded-md text-xs font-bold text-gray-600 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed bg-transparent"
-              >
-                Next
-              </button>
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-white disabled:opacity-50 transition-colors bg-transparent shadow-sm">Next</button>
             </div>
           </div>
         )}
