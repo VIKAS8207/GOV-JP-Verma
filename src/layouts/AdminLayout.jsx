@@ -33,10 +33,11 @@ export default function AdminLayout() {
       pathPrefix: '/admin-dashboard/reports',
       children: [
         { name: 'Course Wise Report', path: '/admin-dashboard/reports/course-wise' },
-        { name: 'Class Wise Report', path: '/admin-dashboard/reports/class-wise' },
         { name: 'Transactional Report', path: '/admin-dashboard/reports/transactional' },
         { name: 'Govt Report', path: '/admin-dashboard/reports/govt' },
         { name: 'Pvt Report', path: '/admin-dashboard/reports/pvt' },
+        { name: 'Fee Head Wise report', path: '/admin-dashboard/reports/fee-head-wise' },
+        { name: 'Sub Fee head', path: '/admin-dashboard/reports/sub-fee-head' },
       ]
     },
   ];

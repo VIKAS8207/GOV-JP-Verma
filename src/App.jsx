@@ -18,6 +18,12 @@ import CourseFeeCreation from './pages/CourseFeeCreation'; // <-- New Import
 
 import Masters from './pages/Masters'; // <-- New Import
 
+import CourseWiseReport from './pages/reports/CourseWiseReport';
+import TransactionalReport from './pages/reports/TransactionalReport';
+import FeeHeadWiseReport from './pages/reports/FeeHeadWiseReport';
+import GovtReport from './pages/reports/GovtReport';
+import PvtReport from './pages/reports/PvtReport';
+
 export default function App() {
   return (
     <Router>
@@ -45,6 +51,11 @@ export default function App() {
           {/* Future routes you can build later */}
           {/* <Route path="/admin-dashboard/fees" element={<FeeStructure />} /> */}
           {/* <Route path="/admin-dashboard/reports" element={<Reports />} /> */}
+          <Route path="/admin-dashboard/reports/course-wise" element={<CourseWiseReport />} />
+          <Route path="/admin-dashboard/reports/transactional" element={<TransactionalReport />} />
+          <Route path="/admin-dashboard/reports/fee-head-wise" element={<FeeHeadWiseReport />} />
+          <Route path="/admin-dashboard/reports/govt" element={<GovtReport />} />
+          <Route path="/admin-dashboard/reports/pvt" element={<PvtReport />} />
         </Route>
 
       </Routes>
