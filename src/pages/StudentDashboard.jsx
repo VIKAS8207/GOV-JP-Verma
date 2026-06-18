@@ -5,10 +5,10 @@ import { Link, useLocation } from 'react-router-dom';
 
 // Mapping the numerical Year (from Register.jsx) to the correct Semester & Base Fee
 const feeDataMap = {
-  "1": { semester: "1st Semester", baseAmount: 42500 },
-  "2": { semester: "3rd Semester", baseAmount: 45000 },
-  "3": { semester: "5th Semester", baseAmount: 46500 },
-  "4": { semester: "7th Semester", baseAmount: 48000 }
+  "1": { semester: "1st Semester", baseAmount: 1066 },
+  "2": { semester: "3rd Semester", baseAmount: 1066 },
+  "3": { semester: "5th Semester", baseAmount: 1066 },
+  "4": { semester: "7th Semester", baseAmount: 1066 }
 };
 
 export default function StudentDashboard() {
