@@ -15,19 +15,25 @@ export default function Register() {
     caste: '',
     course: '',
     year: '',
-    semester: ''
+    semester: '',
+    electiveSubject: '' // Added elective subject to initial state
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Registration Data:", formData);
-    // Future logic: Send to backend, calculate fees, then route appropriately
-    alert("Registration submitted! Calculating fees...");
-    navigate('/student-dashboard'); 
+    
+    // Pass the selected year and course to the Student Dashboard via state
+    navigate('/student-dashboard', { 
+      state: { 
+        registeredYear: formData.year, 
+        registeredCourse: formData.course 
+      } 
+    }); 
   };
 
   return (
@@ -159,7 +165,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Row 4: Academic Details (Caste, Course, Year, Sem) */}
+            {/* Row 4: Academic Details (Caste, Course, Year, Sem, Elective) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               <div className="md:col-span-3 space-y-1.5">
@@ -229,6 +235,23 @@ export default function Register() {
                 </select>
               </div>
 
+            </div>
+
+            {/* Row 5: Elective Subject */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-gray-700">Elective Subject <span className="text-red-500">*</span></label>
+              <select
+                name="electiveSubject"
+                value={formData.electiveSubject}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-medium text-gray-900 appearance-none shadow-sm cursor-pointer"
+                required
+              >
+                <option value="" disabled>Select Elective Subject</option>
+                <option value="NA">NA (Not Applicable)</option>
+                <option value="Subject 1">Subject 1</option>
+                <option value="Subject 2">Subject 2</option>
+              </select>
             </div>
 
             {/* Submit Button */}

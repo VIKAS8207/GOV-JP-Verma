@@ -17,7 +17,15 @@ export default function AdminLayout() {
   const navItems = [
     { name: 'Overview', path: '/admin-dashboard' },
     { name: 'Students List', path: '/admin-dashboard/students' },
-    { name: 'Masters', path: '/admin-dashboard/masters' },
+    { 
+      name: 'Masters', 
+      isDropdown: true,
+      pathPrefix: '/admin-dashboard/masters',
+      children: [
+        { name: 'Master Domain', path: '/admin-dashboard/masters/domain' },
+        { name: 'Registration Buffer', path: '/admin-dashboard/masters/registration-buffer' },
+      ]
+    },
     { 
       name: 'Fee Structure', 
       isDropdown: true,

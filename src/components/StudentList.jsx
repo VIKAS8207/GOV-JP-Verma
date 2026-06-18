@@ -29,7 +29,7 @@ export default function StudentList() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Form State (Gender removed, Email added)
+  // Form State
   const [formData, setFormData] = useState({
     name: '', fatherName: '', phone: '', email: '', city: '',
     category: '', course: '', year: '', semester: ''
@@ -80,7 +80,7 @@ export default function StudentList() {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
-      setUploadStatus('idle'); // Reset errors if they pick a new file
+      setUploadStatus('idle');
     }
   };
 
@@ -93,10 +93,10 @@ export default function StudentList() {
     
     setUploadStatus('uploading');
 
-    // Simulate API upload & processing time (2 seconds)
+    // Simulate API upload & processing time
     setTimeout(() => {
-      // 30% chance to fail just to demonstrate the error UI
-      const isError = Math.random() < 0.3; 
+      // 10% chance to fail just to demonstrate the error UI
+      const isError = Math.random() < 0.1; 
       
       if (isError) {
         setUploadStatus('error');
@@ -132,95 +132,117 @@ export default function StudentList() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={uploadStatus === 'uploading' ? null : resetBulkUpload}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md z-10 border border-gray-100 overflow-hidden"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg z-10 border border-gray-100 overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-extrabold text-gray-900">Bulk Upload Students</h3>
+              <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#EE6132]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  Bulk Upload Students
+                </h3>
                 {uploadStatus !== 'uploading' && (
-                  <button onClick={resetBulkUpload} className="text-gray-400 hover:text-gray-700 transition-colors">
+                  <button onClick={resetBulkUpload} className="text-gray-400 hover:text-gray-900 transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
                 )}
               </div>
 
-              {/* IDLE STATE: Form Selection */}
+              {/* IDLE STATE: 2-Step Form Selection */}
               {uploadStatus === 'idle' && (
-                <form onSubmit={handleBulkSubmit}>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                    className="hidden" 
-                  />
-                  
-                  <div 
-                    onClick={() => fileInputRef.current.click()}
-                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer mb-6 ${
-                      selectedFile ? 'bg-orange-50 border-[#EE6132]' : 'bg-gray-50 border-gray-300 hover:bg-orange-50 hover:border-orange-300'
-                    }`}
-                  >
-                    <svg className={`w-10 h-10 mx-auto mb-3 ${selectedFile ? 'text-[#EE6132]' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    
-                    {selectedFile ? (
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 truncate px-4">{selectedFile.name}</p>
-                        <p className="text-xs text-[#EE6132] mt-1">Ready to upload</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm font-bold text-gray-700">Click to select an Excel/CSV file</p>
-                        <p className="text-xs text-gray-500 mt-1">Maximum file size 5MB</p>
-                      </div>
-                    )}
+                <div className="p-8 space-y-6">
+                  {/* Step 1: Download Format */}
+                  <div className="bg-orange-50 border border-orange-100 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Step 1: Download Format</p>
+                      <p className="text-[11px] text-gray-500 font-medium">Get the required Excel template.</p>
+                    </div>
+                    {/* Make sure the file exists at public/formats/Student_Bulk_Format.xlsx */}
+                    <a href="/formats/Student_Bulk_Format.xlsx" download className="px-4 py-2 bg-white border border-[#EE6132] text-[#EE6132] text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                      Download .xlsx
+                    </a>
                   </div>
-                  
-                  <div className="flex gap-3">
-                    <button type="button" onClick={resetBulkUpload} className="w-full py-3.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
-                    <button type="submit" disabled={!selectedFile} className={`w-full py-3.5 font-bold text-sm rounded-xl transition-all ${selectedFile ? 'bg-[#111111] text-white hover:bg-gray-800 shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>Upload Data</button>
-                  </div>
-                </form>
+
+                  {/* Step 2: Upload Filled File */}
+                  <form onSubmit={handleBulkSubmit}>
+                    <p className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">Step 2: Upload Filled File</p>
+                    <label className="w-full flex flex-col items-center justify-center p-8 bg-[#F8F9FA] border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 hover:border-[#EE6132] transition-colors group mb-6">
+                      <div className={`w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-200 mb-3 group-hover:scale-110 transition-transform ${selectedFile ? 'text-[#EE6132]' : 'text-gray-400 group-hover:text-[#EE6132]'}`}>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                      </div>
+                      
+                      {selectedFile ? (
+                        <div className="text-center">
+                          <span className="text-sm font-bold text-gray-900 truncate px-4 block">{selectedFile.name}</span>
+                          <span className="text-xs text-[#EE6132] mt-1 font-medium block">Ready to process</span>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <span className="text-sm font-bold text-gray-700 block">Click to browse or drag & drop</span>
+                          <span className="text-xs text-gray-400 mt-1 font-medium block">Supports .xlsx, .xls, .csv</span>
+                        </div>
+                      )}
+                      
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden" 
+                        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                        onChange={handleFileChange} 
+                      />
+                    </label>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button type="button" onClick={resetBulkUpload} className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={!selectedFile} className="px-8 py-2.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-md disabled:opacity-50 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Process Upload
+                      </button>
+                    </div>
+                  </form>
+                </div>
               )}
 
               {/* UPLOADING STATE: Spinner */}
               {uploadStatus === 'uploading' && (
-                <div className="py-12 text-center flex flex-col items-center">
-                  <svg className="animate-spin h-10 w-10 text-[#EE6132] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="py-16 text-center flex flex-col items-center">
+                  <svg className="animate-spin h-12 w-12 text-[#EE6132] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <p className="text-sm font-bold text-gray-900">Processing file...</p>
-                  <p className="text-xs text-gray-500 mt-1">Validating student records</p>
+                  <p className="text-base font-bold text-gray-900">Processing file...</p>
+                  <p className="text-sm text-gray-500 mt-1">Validating student records</p>
                 </div>
               )}
 
               {/* SUCCESS STATE */}
               {uploadStatus === 'success' && (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-6">
-                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-100">
-                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center p-8 sm:p-10">
+                  <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-green-100">
+                    <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                   </div>
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-1">Upload Successful!</h3>
-                  <p className="text-sm text-gray-500 mb-8">All student records have been added to the system.</p>
-                  <button onClick={resetBulkUpload} className="w-full py-3.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-md">Done</button>
+                  <h3 className="text-xl font-extrabold text-gray-900 mb-2">Upload Successful!</h3>
+                  <p className="text-sm text-gray-500 mb-8">Student records have been securely added to the system.</p>
+                  <button onClick={resetBulkUpload} className="w-full py-4 bg-[#111111] text-white font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-gray-800 transition-colors shadow-md">Done</button>
                 </motion.div>
               )}
 
               {/* ERROR STATE */}
               {uploadStatus === 'error' && (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-6">
-                  <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-red-100">
-                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center p-8 sm:p-10">
+                  <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-red-100">
+                    <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </div>
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-1">Upload Rejected</h3>
-                  <p className="text-sm text-red-500 font-medium mb-8 bg-red-50 py-2 rounded-lg mt-2 mx-4">Error: Invalid format or missing required fields in rows 4-9.</p>
+                  <h3 className="text-xl font-extrabold text-gray-900 mb-2">Upload Rejected</h3>
+                  <p className="text-sm text-red-500 font-medium mb-8 bg-red-50 py-3 rounded-lg mt-2 mx-4 border border-red-100">Error: Invalid format or missing required fields in rows 4-9.</p>
                   <div className="flex gap-3">
-                    <button onClick={resetBulkUpload} className="w-full py-3.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button onClick={resetBulkUpload} className="w-full py-3.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
                     <button onClick={() => setUploadStatus('idle')} className="w-full py-3.5 bg-[#EE6132] text-white font-bold text-sm rounded-xl hover:bg-[#d9562a] transition-colors shadow-md">Try Again</button>
                   </div>
                 </motion.div>
