@@ -1,10 +1,11 @@
 // src/layouts/AdminLayout.jsx
 import React, { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate(); // Added useNavigate for the logout redirect
   
   // --- New States for Academic Year & Mobile Menu ---
   const [activeYear, setActiveYear] = useState('2025-2026');
@@ -12,6 +13,15 @@ export default function AdminLayout() {
   const [mobileDropdowns, setMobileDropdowns] = useState({}); // Tracks which mobile dropdowns are open
   
   const academicYears = ['2026-2027', '2025-2026', '2024-2025', '2023-2024'];
+
+  // --- SECURE LOGOUT HANDLER ---
+  const handleLogout = () => {
+    // 1. Clear the authentication token
+    localStorage.removeItem('isAdminAuthenticated');
+    
+    // 2. Redirect back to the login screen
+    navigate('/admin');
+  };
 
   // Navigation structure
   const navItems = [
@@ -42,8 +52,8 @@ export default function AdminLayout() {
       children: [
         { name: 'Course Wise Report', path: '/admin-dashboard/reports/course-wise' },
         { name: 'Transactional Report', path: '/admin-dashboard/reports/transactional' },
-        { name: 'Govt Report', path: '/admin-dashboard/reports/govt' },
-        { name: 'Pvt Report', path: '/admin-dashboard/reports/pvt' },
+        { name: 'Government Fee Report', path: '/admin-dashboard/reports/govt' },
+        { name: 'Private Fee Report', path: '/admin-dashboard/reports/pvt' },
         { name: 'Fee Head Wise report', path: '/admin-dashboard/reports/fee-head-wise' },
         { name: 'Sub Fee head', path: '/admin-dashboard/reports/sub-fee-head' },
       ]
@@ -136,7 +146,7 @@ export default function AdminLayout() {
           {/* Right: Academic Year, Profile & Logout (Hidden on small screens) */}
           <div className="hidden lg:flex items-center gap-6">
             
-            {/* NEW: Academic Year Capsule Dropdown */}
+            {/* Academic Year Capsule Dropdown */}
             <div className="relative group">
               <button className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -165,18 +175,18 @@ export default function AdminLayout() {
             {/* Divider */}
             <div className="h-6 w-px bg-gray-200"></div>
 
-            {/* Profile / Logout */}
+            {/* Profile / Logout Button (Updated) */}
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
                 AD
               </div>
-              <Link 
-                to="/admin" 
-                className="text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1.5"
+              <button 
+                onClick={handleLogout}
+                className="text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 Logout
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -310,16 +320,18 @@ export default function AdminLayout() {
                 </div>
               </div>
 
-              {/* Drawer Footer (Logout) */}
+              {/* Drawer Footer (Logout) - Updated */}
               <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <Link 
-                  to="/admin" 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-red-200 text-red-600 font-bold text-sm rounded-xl hover:bg-red-50 transition-colors shadow-sm"
+                <button 
+                  onClick={() => { 
+                    setIsMobileMenuOpen(false); 
+                    handleLogout(); 
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-red-200 text-red-600 font-bold text-sm rounded-xl hover:bg-red-50 transition-colors shadow-sm cursor-pointer"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                   Secure Logout
-                </Link>
+                </button>
               </div>
 
             </motion.div>

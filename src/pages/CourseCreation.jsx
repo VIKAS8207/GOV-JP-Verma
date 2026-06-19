@@ -2,33 +2,38 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Mock Initial Courses Data
 const initialCourses = [
-  { id: 1, title: 'Civil Engineering', code: 'CIVIL-01', duration: '4 Years', year: '2026-2027' },
-  { id: 2, title: 'Computer Science', code: 'CS-12', duration: '4 Years', year: '2026-2027' },
-  { id: 3, title: 'Master of Business Admin', code: 'MBA-01', duration: '2 Years', year: '2026-2027' },
-  { id: 4, title: 'Mechanical Engineering', code: 'ME-123', duration: '4 Years', year: '2026-2027' },
-  { id: 5, title: 'Electrical Engineering', code: 'EE-44', duration: '4 Years', year: '2026-2027' },
-  { id: 6, title: 'Bachelor of Arts', code: 'BA-01', duration: '3 Years', year: '2026-2027' },
+  { id: 1, title: 'Bachelor of Technology', specialization: 'Computer Science', code: 'BTECH-CS', type: 'UG', startDate: '2026-08-01', endDate: '2030-07-30', semesters: '8', status: 'Active' },
+  { id: 2, title: 'Master of Business Administration', specialization: 'Marketing', code: 'MBA-MKT', type: 'PG', startDate: '2026-08-01', endDate: '2028-07-30', semesters: '4', status: 'Active' },
+  { id: 3, title: 'Bachelor of Arts', specialization: 'English Literature', code: 'BA-ENG', type: 'UG', startDate: '2026-07-15', endDate: '2029-06-30', semesters: '6', status: 'Active' },
+  { id: 4, title: 'Diploma in Web Development', specialization: 'Frontend', code: 'DIP-WEB', type: 'Diploma', startDate: '2026-09-01', endDate: '2027-08-30', semesters: '2', status: 'Inactive' },
 ];
 
 export default function CourseCreation() {
   const [courses, setCourses] = useState(initialCourses);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isBulkOpen, setIsBulkOpen] = useState(false); // New state for bulk upload modal
+  const [isBulkOpen, setIsBulkOpen] = useState(false); // Bulk upload modal state
   const [editId, setEditId] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null); // State for the uploaded file
+  const [selectedFile, setSelectedFile] = useState(null); // File upload state
   
   // Search & Pagination States
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const [formData, setFormData] = useState({
+  const defaultFormState = {
     title: '',
+    specialization: '',
     code: '',
-    duration: '',
-    year: '2026-2027'
-  });
+    type: '',
+    startDate: '',
+    endDate: '',
+    semesters: '',
+    status: 'Active'
+  };
+
+  const [formData, setFormData] = useState(defaultFormState);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,6 +42,15 @@ export default function CourseCreation() {
   // --- ACTIONS ---
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate Dates
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    if (end <= start) {
+      alert("Invalid Dates: End Date must be after the Start Date.");
+      return;
+    }
+
     if (editId) {
       setCourses(courses.map(c => c.id === editId ? { ...formData, id: editId } : c));
       setEditId(null);
@@ -49,10 +63,14 @@ export default function CourseCreation() {
 
   const handleEdit = (course) => {
     setFormData({
-      title: course.title,
-      code: course.code,
-      duration: course.duration,
-      year: course.year
+      title: course.title || '',
+      specialization: course.specialization || '',
+      code: course.code || '',
+      type: course.type || '',
+      startDate: course.startDate || '',
+      endDate: course.endDate || '',
+      semesters: course.semesters || '',
+      status: course.status || 'Active'
     });
     setEditId(course.id);
     setIsFormOpen(true);
@@ -75,14 +93,13 @@ export default function CourseCreation() {
       alert("Please select a file first.");
       return;
     }
-    // Future logic: Send file to backend to parse and add courses
     alert(`File "${selectedFile.name}" uploaded successfully! Processing records...`);
     setIsBulkOpen(false);
     setSelectedFile(null);
   };
 
   const resetForm = () => {
-    setFormData({ title: '', code: '', duration: '', year: '2026-2027' });
+    setFormData(defaultFormState);
     setIsFormOpen(false);
     setEditId(null);
   };
@@ -90,7 +107,8 @@ export default function CourseCreation() {
   // --- SEARCH & PAGINATION LOGIC ---
   const filteredCourses = courses.filter(course => 
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.code.toLowerCase().includes(searchTerm.toLowerCase())
+    course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (course.specialization && course.specialization.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
@@ -130,20 +148,17 @@ export default function CourseCreation() {
               </div>
 
               <div className="p-8 space-y-6">
-                {/* Download Format Section */}
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Step 1: Download Format</p>
                     <p className="text-[11px] text-gray-500 font-medium">Get the required Excel template.</p>
                   </div>
-                  {/* Make sure the file exists at public/formats/Course_Bulk_Format.xlsx */}
                   <a href="/formats/Course_Bulk_Format.xlsx" download className="px-4 py-2 bg-white border border-[#EE6132] text-[#EE6132] text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4-4m4 4V4"></path></svg>
                     Download .xlsx
                   </a>
                 </div>
 
-                {/* Upload Section */}
                 <div>
                   <p className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-3">Step 2: Upload Filled File</p>
                   <label className="w-full flex flex-col items-center justify-center p-8 bg-[#F8F9FA] border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 hover:border-[#EE6132] transition-colors group">
@@ -179,7 +194,6 @@ export default function CourseCreation() {
         </div>
         
         <div className="flex gap-3">
-          {/* New Bulk Upload Button */}
           <button 
             onClick={() => setIsBulkOpen(true)}
             className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-all shadow-sm"
@@ -221,76 +235,135 @@ export default function CourseCreation() {
               </h3>
               
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   
-                  {/* Row 1: Full Width Course Name */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Course Name</label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleChange}
-                      placeholder="e.g. Civil Engineering"
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 placeholder-gray-400"
-                      required
-                    />
+                  {/* Row 1: Course Name & Specialization */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Course Name <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        placeholder="e.g. Bachelor of Technology"
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 placeholder-gray-400"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Batch Specialization <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        name="specialization"
+                        value={formData.specialization}
+                        onChange={handleChange}
+                        placeholder="e.g. Computer Science"
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 placeholder-gray-400"
+                        required
+                      />
+                    </div>
                   </div>
 
-                  {/* Row 2: Code & Duration */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Course Code</label>
-                    <input
-                      type="text"
-                      name="code"
-                      value={formData.code}
-                      onChange={handleChange}
-                      placeholder="e.g. CE-01"
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium uppercase text-gray-900 placeholder-gray-400"
-                      required
-                    />
+                  {/* Row 2: Code & Type */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Course Code <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        name="code"
+                        value={formData.code}
+                        onChange={handleChange}
+                        placeholder="e.g. BTECH-CS"
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium uppercase text-gray-900 placeholder-gray-400"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Course Type <span className="text-red-500">*</span></label>
+                      <select
+                        name="type"
+                        value={formData.type}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="" disabled>Select Type</option>
+                        <option value="UG">UG (Undergraduate)</option>
+                        <option value="PG">PG (Postgraduate)</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="Certificate">Certificate</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Duration</label>
-                    <select
-                      name="duration"
-                      value={formData.duration}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                      required
-                    >
-                      <option value="" disabled>Select Duration</option>
-                      <option value="1 Year">1 Year</option>
-                      <option value="2 Years">2 Years</option>
-                      <option value="3 Years">3 Years</option>
-                      <option value="4 Years">4 Years</option>
-                    </select>
+                  {/* Row 3: Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Starting Date <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        name="startDate"
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ending Date <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900"
+                        required
+                      />
+                    </div>
                   </div>
 
-                  {/* Row 3: Batch & Button perfectly aligned */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Academic Batch</label>
-                    <select
-                      name="year"
-                      value={formData.year}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer"
-                      required
-                    >
-                      <option value="2025-2026">2025-2026</option>
-                      <option value="2026-2027">2026-2027</option>
-                      <option value="2027-2028">2027-2028</option>
-                    </select>
-                  </div>
+                  {/* Row 4: Semesters, Status & Button */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                    <div className="md:col-span-4 space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">No. of Semesters <span className="text-red-500">*</span></label>
+                      <input
+                        type="number"
+                        min="1"
+                        name="semesters"
+                        value={formData.semesters}
+                        onChange={handleChange}
+                        placeholder="e.g. 8"
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 placeholder-gray-400"
+                        required
+                      />
+                    </div>
 
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      className="w-full h-[46px] bg-[#111111] text-white font-bold text-sm rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
-                    >
-                      {editId ? 'Update Course Details' : 'Save New Course'}
-                    </button>
+                    <div className="md:col-span-4 space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status <span className="text-red-500">*</span></label>
+                      <select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-lg outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-bold text-gray-900 appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-4">
+                      <button
+                        type="submit"
+                        className="w-full h-[46px] bg-[#111111] text-white font-bold text-sm rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
+                      >
+                        {editId ? 'Update Course Details' : 'Save New Course'}
+                      </button>
+                    </div>
                   </div>
 
                 </div>
@@ -313,7 +386,7 @@ export default function CourseCreation() {
             </div>
             <input
               type="text"
-              placeholder="Search by course name or code..."
+              placeholder="Search by name, spec, or code..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -337,10 +410,10 @@ export default function CourseCreation() {
             <thead className="bg-gray-50/80">
               <tr>
                 <th className="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest w-20">S.No</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Course Name</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Code</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Duration</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Batch</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Course & Spec</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Code & Type</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Duration (Semesters)</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
                 <th className="px-8 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
@@ -357,19 +430,24 @@ export default function CourseCreation() {
                     <td className="px-8 py-4 whitespace-nowrap text-sm font-bold text-gray-400">
                       {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                      {course.title}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-bold text-gray-900 block">{course.title}</span>
+                      <span className="text-xs font-medium text-gray-500 block">{course.specialization}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded flex-inline items-center border border-gray-200">
+                      <span className="px-2.5 py-1 bg-gray-100 text-gray-800 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">
                         {course.code}
                       </span>
+                      <span className="text-xs font-bold text-gray-500 ml-2">{course.type}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                      {course.duration}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-800 font-medium block">{new Date(course.startDate).getFullYear()} - {new Date(course.endDate).getFullYear()}</span>
+                      <span className="text-xs text-gray-500 font-medium block">({course.semesters} Semesters)</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                      {course.year}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${course.status === 'Active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                        {course.status}
+                      </span>
                     </td>
                     <td className="px-8 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,6 +1,8 @@
 // src/pages/reports/CourseWiseReport.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // <-- Changed this import!
 
 // Mock Analytical Data
 const initialReportData = [
@@ -13,21 +15,72 @@ const initialReportData = [
 
 export default function CourseWiseReport() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [courseFilter, setCourseFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Filter Logic
-  const filteredData = initialReportData.filter(item => 
-    item.course.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter Logic (Search + Dropdown Filter)
+  const filteredData = useMemo(() => {
+    return initialReportData.filter(item => {
+      const matchSearch = item.course.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCourse = courseFilter === 'All' || item.course === courseFilter;
+      return matchSearch && matchCourse;
+    });
+  }, [searchTerm, courseFilter]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Aggregated Metrics
+  // Aggregated Metrics based on filtered data
   const totalEnrollment = filteredData.reduce((sum, item) => sum + item.totalStudents, 0);
   const totalCollected = filteredData.reduce((sum, item) => sum + item.collectedFee, 0);
   const totalPending = filteredData.reduce((sum, item) => sum + item.pendingFee, 0);
+
+  // --- PDF EXPORT FUNCTION ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add Report Title
+    doc.setFontSize(18);
+    doc.setTextColor(17, 17, 17); // #111111
+    doc.text('Course-Wise Analytics Report', 14, 22);
+    
+    // Add Timestamp
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+    // Define Table Columns and Rows based on current filtered data
+    const tableColumn = ["S.No", "Course Name", "Total Students", "Male", "Female", "Received Revenue", "Outstanding"];
+    const tableRows = [];
+
+    filteredData.forEach((item, index) => {
+      const rowData = [
+        index + 1,
+        item.course,
+        item.totalStudents,
+        item.male,
+        item.female,
+        `Rs. ${(item.collectedFee / 100000).toFixed(2)}L`,
+        `Rs. ${(item.pendingFee / 100000).toFixed(2)}L`
+      ];
+      tableRows.push(rowData);
+    });
+
+    // AutoTable Generation (Using the modern import method)
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 35,
+      theme: 'grid',
+      headStyles: { fillColor: [238, 97, 50], textColor: [255, 255, 255], fontStyle: 'bold' }, // #EE6132
+      styles: { fontSize: 9, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [253, 248, 245] }, // Light orange tint
+    });
+
+    // Save the PDF
+    doc.save('Course_Wise_Report.pdf');
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-[1600px] mx-auto space-y-8">
@@ -40,13 +93,12 @@ export default function CourseWiseReport() {
         </div>
         
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-            Filter Data
-          </button>
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-md">
+          <button 
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-md"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Export Report
+            Export PDF Report
           </button>
         </div>
       </div>
@@ -85,20 +137,39 @@ export default function CourseWiseReport() {
       {/* --- DATA TABLE --- */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         
-        {/* Toolbar */}
+        {/* Toolbar with Search and Course Filter */}
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-          <div className="relative w-full sm:w-96">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-[300px]">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by course name..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-bold text-gray-900 shadow-sm placeholder-gray-400"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search by course name..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-medium text-gray-900 shadow-sm"
-            />
+
+            {/* Course Dropdown Filter */}
+            <select 
+              value={courseFilter} 
+              onChange={(e) => { setCourseFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full sm:w-auto bg-white border border-gray-200 text-gray-700 text-sm font-bold py-3 px-4 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 shadow-sm appearance-none cursor-pointer"
+            >
+              <option value="All">All Courses</option>
+              <option value="B.Tech Computer Science">B.Tech Computer Science</option>
+              <option value="B.A First Year">B.A First Year</option>
+              <option value="BCA First Year">BCA First Year</option>
+              <option value="B.Com Second Year">B.Com Second Year</option>
+              <option value="MBA">MBA</option>
+            </select>
           </div>
+
           <span className="px-4 py-2 bg-orange-50 text-[#EE6132] text-xs font-extrabold uppercase tracking-widest rounded-lg border border-orange-100 shrink-0 shadow-sm">
             {filteredData.length} Courses Found
           </span>
@@ -111,8 +182,10 @@ export default function CourseWiseReport() {
               <tr>
                 <th className="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest w-16">S.No</th>
                 <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Course Name</th>
-                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Enrollment Stats</th>
-                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Revenue Status</th>
+                <th className="px-6 py-5 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Total Students</th>
+                <th className="px-6 py-5 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Male</th>
+                <th className="px-6 py-5 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Female</th>
+                <th className="px-6 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Received Revenue</th>
                 <th className="px-8 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Outstanding</th>
               </tr>
             </thead>
@@ -127,26 +200,23 @@ export default function CourseWiseReport() {
                     <td className="px-8 py-5 whitespace-nowrap text-sm font-bold text-gray-400">
                       {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-6 py-5 whitespace-nowrap">
                       <p className="text-sm font-bold text-gray-900">{item.course}</p>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <span className="font-extrabold text-gray-900">{item.totalStudents}</span>
-                        <div className="flex gap-1.5">
-                          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded border border-blue-100">M: {item.male}</span>
-                          <span className="px-2 py-0.5 bg-pink-50 text-pink-600 text-[10px] font-bold uppercase rounded border border-pink-100">F: {item.female}</span>
-                        </div>
-                      </div>
+                    <td className="px-6 py-5 whitespace-nowrap text-center">
+                      <span className="text-sm font-extrabold text-gray-900 bg-gray-100 px-3 py-1 rounded-lg border border-gray-200">{item.totalStudents}</span>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold text-gray-500">Exp: ₹{(item.expectedFee / 100000).toFixed(2)}L</span>
-                        <span className="text-sm font-black text-green-600">Col: ₹{(item.collectedFee / 100000).toFixed(2)}L</span>
-                      </div>
+                    <td className="px-6 py-5 whitespace-nowrap text-center">
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">{item.male}</span>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap text-center">
+                      <span className="text-xs font-bold text-pink-600 bg-pink-50 px-3 py-1.5 rounded-lg border border-pink-100">{item.female}</span>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap text-right">
+                      <span className="text-sm font-black text-green-600 font-mono tracking-tight">₹{(item.collectedFee / 100000).toFixed(2)}L</span>
                     </td>
                     <td className="px-8 py-5 whitespace-nowrap text-right">
-                      <span className="text-base font-black text-red-500 font-mono tracking-tight">₹{(item.pendingFee / 100000).toFixed(2)}L</span>
+                      <span className="text-sm font-black text-red-500 font-mono tracking-tight">₹{(item.pendingFee / 100000).toFixed(2)}L</span>
                     </td>
                   </motion.tr>
                 ))}
@@ -166,7 +236,7 @@ export default function CourseWiseReport() {
         {totalPages > 0 && (
           <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length}
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} records
             </span>
             <div className="flex gap-2">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-white disabled:opacity-50 transition-colors shadow-sm">Previous</button>

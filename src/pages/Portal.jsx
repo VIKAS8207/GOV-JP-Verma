@@ -45,7 +45,7 @@ export default function Portal() {
       {/* Header */}
       <header className="w-full max-w-[1400px] mx-auto p-6 flex justify-between items-center z-50">
         <div className="flex items-center gap-3">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-orange-100">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden">
             <img src="/image/logo.png" alt="College Logo" className="w-full h-full object-contain p-2" />
           </div>
           <div className="flex flex-col">

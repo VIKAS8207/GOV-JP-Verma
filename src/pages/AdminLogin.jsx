@@ -1,16 +1,29 @@
+// src/pages/AdminLogin.jsx
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function AdminLogin() {
   const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(''); // New error state
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    console.log("Admin attempting entry with ID:", adminId);
-    navigate('/admin-dashboard'); 
+    
+    // Hardcoded Credential Check
+    if (adminId === 'Admin' && password === 'Admin123') {
+      setError('');
+      // Set a simple auth flag in browser storage
+      localStorage.setItem('isAdminAuthenticated', 'true');
+      console.log("Admin authenticated successfully.");
+      navigate('/admin-dashboard'); 
+    } else {
+      // Trigger Error
+      setError('Invalid Admin ID or Password. Access Denied.');
+      // Shake animation effect could be added here, but we will use a banner
+    }
   };
 
   return (
@@ -54,6 +67,21 @@ export default function AdminLogin() {
             <p className="text-gray-400 text-sm mt-2">Enter your administrative credentials.</p>
           </div>
 
+          {/* --- Error Warning Banner --- */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-[10px] flex items-center gap-3 text-red-500 text-xs font-bold tracking-wide"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">
@@ -62,7 +90,7 @@ export default function AdminLogin() {
               <input
                 type="text"
                 value={adminId}
-                onChange={(e) => setAdminId(e.target.value)}
+                onChange={(e) => { setAdminId(e.target.value); setError(''); }}
                 placeholder="ADM-XXXX"
                 className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-[10px] focus:outline-none focus:border-[#EE6132] transition-colors text-white placeholder-gray-600 font-mono text-sm"
                 required
@@ -76,7 +104,7 @@ export default function AdminLogin() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 placeholder="••••••••"
                 className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-[10px] focus:outline-none focus:border-[#EE6132] transition-colors text-white placeholder-gray-600 font-mono text-sm"
                 required

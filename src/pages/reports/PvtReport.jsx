@@ -1,35 +1,98 @@
 // src/pages/reports/PvtReport.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-// Mock Data for Private Fee Inflows
+// Expanded Mock Data with Course breakdowns
 const pvtData = {
   yearly: [
-    { id: 1, period: '2026-2027', total: 8500000, pd_af: 4500000, cm: 3000000, reentry: 1000000 },
-    { id: 2, period: '2025-2026', total: 7200000, pd_af: 4200000, cm: 2800000, reentry: 200000 },
+    { id: 1, period: '2026-2027', course: 'B.Tech Computer Science', total: 4500000, pd_af: 2500000, cm: 1500000, reentry: 500000 },
+    { id: 2, period: '2026-2027', course: 'MBA', total: 2000000, pd_af: 1000000, cm: 800000, reentry: 200000 },
+    { id: 3, period: '2026-2027', course: 'B.A First Year', total: 2000000, pd_af: 1000000, cm: 700000, reentry: 300000 },
+    { id: 4, period: '2025-2026', course: 'B.Tech Computer Science', total: 4000000, pd_af: 2200000, cm: 1600000, reentry: 200000 },
+    { id: 5, period: '2025-2026', course: 'MBA', total: 1800000, pd_af: 1100000, cm: 700000, reentry: 0 },
+    { id: 6, period: '2025-2026', course: 'BCA First Year', total: 1400000, pd_af: 900000, cm: 500000, reentry: 0 },
   ],
   monthly: [
-    { id: 3, period: 'May 2026', total: 800000, pd_af: 450000, cm: 300000, reentry: 50000 },
-    { id: 4, period: 'April 2026', total: 720000, pd_af: 420000, cm: 280000, reentry: 20000 },
-    { id: 5, period: 'March 2026', total: 670000, pd_af: 380000, cm: 250000, reentry: 40000 },
+    { id: 7, period: 'May 2026', course: 'B.Tech Computer Science', total: 400000, pd_af: 200000, cm: 150000, reentry: 50000 },
+    { id: 8, period: 'May 2026', course: 'MBA', total: 250000, pd_af: 150000, cm: 100000, reentry: 0 },
+    { id: 9, period: 'May 2026', course: 'B.A First Year', total: 150000, pd_af: 100000, cm: 50000, reentry: 0 },
+    { id: 10, period: 'April 2026', course: 'B.Tech Computer Science', total: 380000, pd_af: 220000, cm: 140000, reentry: 20000 },
+    { id: 11, period: 'April 2026', course: 'B.Com Second Year', total: 140000, pd_af: 100000, cm: 40000, reentry: 0 },
+    { id: 12, period: 'March 2026', course: 'BCA First Year', total: 350000, pd_af: 200000, cm: 120000, reentry: 30000 },
+    { id: 13, period: 'March 2026', course: 'MBA', total: 320000, pd_af: 180000, cm: 130000, reentry: 10000 },
   ]
 };
 
 export default function PvtReport() {
   const [view, setView] = useState('monthly'); // 'monthly' or 'yearly'
   const [searchTerm, setSearchTerm] = useState('');
+  const [courseFilter, setCourseFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   const currentData = view === 'monthly' ? pvtData.monthly : pvtData.yearly;
 
   // Filter Logic
-  const filteredData = currentData.filter(item => 
-    item.period.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = useMemo(() => {
+    return currentData.filter(item => {
+      const matchSearch = item.period.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.course.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCourse = courseFilter === 'All' || item.course === courseFilter;
+      return matchSearch && matchCourse;
+    });
+  }, [currentData, searchTerm, courseFilter]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // --- PDF EXPORT FUNCTION ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF('landscape'); // Landscape for wide tables
+    
+    // Add Report Title
+    doc.setFontSize(18);
+    doc.setTextColor(17, 17, 17);
+    doc.text('Private Funds Report', 14, 22);
+    
+    // Add Timestamp & Filters
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleString()} | View: ${view.toUpperCase()} | Course: ${courseFilter}`, 14, 30);
+
+    // Define Table Columns
+    const tableColumn = ["S.No", view === 'monthly' ? "Month & Year" : "Academic Year", "Course", "PD / AF", "Caution Money", "Re-entry", "Total Amount"];
+    const tableRows = [];
+
+    // Map Data
+    filteredData.forEach((item, index) => {
+      const rowData = [
+        index + 1,
+        item.period,
+        item.course,
+        `Rs. ${item.pd_af.toLocaleString('en-IN')}`,
+        `Rs. ${item.cm.toLocaleString('en-IN')}`,
+        `Rs. ${item.reentry.toLocaleString('en-IN')}`,
+        `Rs. ${item.total.toLocaleString('en-IN')}`
+      ];
+      tableRows.push(rowData);
+    });
+
+    // AutoTable Generation
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 35,
+      theme: 'grid',
+      headStyles: { fillColor: [238, 97, 50], textColor: [255, 255, 255], fontStyle: 'bold' }, // #EE6132
+      styles: { fontSize: 9, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [253, 248, 245] },
+    });
+
+    // Save the PDF
+    doc.save(`Pvt_Funds_Report_${view}_${new Date().getTime()}.pdf`);
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-[1600px] mx-auto space-y-8">
@@ -41,14 +104,36 @@ export default function PvtReport() {
           <p className="text-gray-500 mt-1">Detailed tracking of non-government institutional revenue streams.</p>
         </div>
         
-        <div className="flex gap-3">
-          <div className="flex bg-white p-1.5 rounded-xl shadow-sm border border-gray-200">
-            <button onClick={() => { setView('monthly'); setCurrentPage(1); }} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'monthly' ? 'bg-orange-50 text-[#EE6132] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
-            <button onClick={() => { setView('yearly'); setCurrentPage(1); }} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'yearly' ? 'bg-orange-50 text-[#EE6132] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
+        <div className="flex gap-4 items-center">
+          
+          {/* Animated Toggle Switch */}
+          <div className="flex bg-gray-100 p-1.5 rounded-xl relative shadow-inner border border-gray-200">
+            {['monthly', 'yearly'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => { setView(tab); setCurrentPage(1); }}
+                className={`relative px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-colors duration-300 z-10 ${
+                  view === tab ? 'text-[#EE6132]' : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                {view === tab && (
+                  <motion.div 
+                    layoutId="activeTabPvt" 
+                    className="absolute inset-0 bg-white rounded-lg shadow-sm -z-10" 
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+                {tab}
+              </button>
+            ))}
           </div>
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-[#EE6132] text-white font-bold text-sm rounded-xl hover:bg-[#d9562a] transition-colors shadow-md shrink-0">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            Export
+
+          <button 
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-md shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Export PDF Report
           </button>
         </div>
       </div>
@@ -61,7 +146,7 @@ export default function PvtReport() {
         </div>
         <div className="bg-[#111111] text-white p-6 rounded-2xl shadow-lg flex flex-col justify-center relative overflow-hidden">
           <div className="absolute right-0 top-0 opacity-10">
-            <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            
           </div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 relative z-10">Total PD / AF Collections</p>
           <h3 className="text-3xl font-black text-[#EE6132] font-mono tracking-tight relative z-10">₹{filteredData.reduce((s, r) => s + r.pd_af, 0).toLocaleString('en-IN')}</h3>
@@ -73,18 +158,40 @@ export default function PvtReport() {
         
         {/* Filters Toolbar */}
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-          <div className="relative w-full sm:w-[400px]">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+            
+            {/* Search */}
+            <div className="relative w-full sm:w-[300px]">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              <input
+                type="text"
+                placeholder={`Search ${view === 'monthly' ? 'Month' : 'Year'} or Course...`}
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-bold text-gray-900 shadow-sm placeholder-gray-400"
+              />
             </div>
-            <input
-              type="text"
-              placeholder={`Search by ${view === 'monthly' ? 'Month (e.g. May)' : 'Year (e.g. 2026)'}...`}
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-bold text-gray-900 shadow-sm placeholder-gray-400"
-            />
+
+            {/* Course Filter */}
+            <select 
+              value={courseFilter} 
+              onChange={(e) => { setCourseFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full sm:w-auto bg-white border border-gray-200 text-gray-700 text-sm font-bold py-3 px-4 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 shadow-sm appearance-none cursor-pointer"
+            >
+              <option value="All">All Courses</option>
+              <option value="B.Tech Computer Science">B.Tech Computer Science</option>
+              <option value="B.A First Year">B.A First Year</option>
+              <option value="BCA First Year">BCA First Year</option>
+              <option value="B.Com Second Year">B.Com Second Year</option>
+              <option value="MBA">MBA</option>
+            </select>
           </div>
+
+          <span className="px-4 py-2 bg-orange-50 text-[#EE6132] text-xs font-extrabold uppercase tracking-widest rounded-lg border border-orange-100 shrink-0 shadow-sm">
+            {filteredData.length} Records Found
+          </span>
         </div>
 
         {/* Table */}
@@ -92,7 +199,9 @@ export default function PvtReport() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th className="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">{view === 'monthly' ? 'Month' : 'Academic Year'}</th>
+                <th className="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest w-16">S.No</th>
+                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">{view === 'monthly' ? 'Month & Year' : 'Academic Year'}</th>
+                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Course</th>
                 <th className="px-6 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">PD / AF</th>
                 <th className="px-6 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Caution Money</th>
                 <th className="px-6 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Re-entry</th>
@@ -101,13 +210,17 @@ export default function PvtReport() {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               <AnimatePresence>
-                {paginatedData.map((row) => (
+                {paginatedData.map((row, index) => (
                   <motion.tr 
                     key={row.id}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -10 }}
                     className="hover:bg-orange-50/30 transition-colors group"
                   >
-                    <td className="px-8 py-5 whitespace-nowrap font-black text-gray-900">{row.period}</td>
+                    <td className="px-8 py-5 whitespace-nowrap text-sm font-bold text-gray-400">
+                      {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap font-black text-gray-900">{row.period}</td>
+                    <td className="px-6 py-5 whitespace-nowrap font-bold text-gray-700">{row.course}</td>
                     <td className="px-6 py-5 whitespace-nowrap text-right font-medium text-gray-700 font-mono">{row.pd_af > 0 ? `₹${row.pd_af.toLocaleString('en-IN')}` : '-'}</td>
                     <td className="px-6 py-5 whitespace-nowrap text-right font-medium text-gray-700 font-mono">{row.cm > 0 ? `₹${row.cm.toLocaleString('en-IN')}` : '-'}</td>
                     <td className="px-6 py-5 whitespace-nowrap text-right font-medium text-gray-700 font-mono">{row.reentry > 0 ? `₹${row.reentry.toLocaleString('en-IN')}` : '-'}</td>

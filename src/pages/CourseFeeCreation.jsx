@@ -2,10 +2,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Mock data structured to match the new detailed breakdown
+// Expanded historical years list for the dropdowns (2020 - 2040)
+const yearsList = Array.from({ length: 21 }, (_, i) => (2020 + i).toString());
+
+// Mock data structured to match the exact form fields
 const initialFees = [
   { 
-    id: 1, course: 'B.A First Year', gender: 'Male / Female Both', caste: 'OBC/UR',
+    id: 1, course: 'Bachelor of Arts', batch: '2026-2029', gender: 'Male / Female Both', caste: 'OBC/UR',
     fees: {
       govt: { addFee: 500, sta: 300, practical: 0, tuition: 15000 },
       nonGovt: { pd_af: 1200, cm: 800, reentry: 0 },
@@ -13,7 +16,7 @@ const initialFees = [
     }
   },
   { 
-    id: 2, course: 'B.SC .B.C.A first year', gender: 'Female', caste: 'SC/ST',
+    id: 2, course: 'Bachelor of Science', batch: '2026-2029', gender: 'Female', caste: 'SC/ST',
     fees: {
       govt: { addFee: 500, sta: 300, practical: 2000, tuition: 0 },
       nonGovt: { pd_af: 1200, cm: 800, reentry: 0 },
@@ -22,15 +25,18 @@ const initialFees = [
   }
 ];
 
-// Helper to calculate total for a specific fee record
-const getFeeTotal = (feesObj) => {
+// Helper to calculate total for a specific section
+const getSectionTotal = (feesObj, section) => {
   let total = 0;
-  ['govt', 'nonGovt', 'others'].forEach(sec => {
-    Object.values(feesObj[sec]).forEach(val => {
-      total += Number(val) || 0;
-    });
+  Object.values(feesObj[section]).forEach(val => {
+    total += Number(val) || 0;
   });
   return total;
+};
+
+// Helper to calculate grand total
+const getFeeTotal = (feesObj) => {
+  return getSectionTotal(feesObj, 'govt') + getSectionTotal(feesObj, 'nonGovt') + getSectionTotal(feesObj, 'others');
 };
 
 export default function CourseFeeCreation() {
@@ -48,6 +54,7 @@ export default function CourseFeeCreation() {
   // Initial Empty State
   const defaultFormState = {
     course: '',
+    batch: '',
     caste: '',
     gender: '',
     fees: {
@@ -112,9 +119,10 @@ export default function CourseFeeCreation() {
 
   const handleEdit = (feeItem) => {
     setFormData({
-      course: feeItem.course,
-      caste: feeItem.caste,
-      gender: feeItem.gender,
+      course: feeItem.course || '',
+      batch: feeItem.batch || '',
+      caste: feeItem.caste || '',
+      gender: feeItem.gender || '',
       fees: {
         govt: { ...feeItem.fees.govt },
         nonGovt: { ...feeItem.fees.nonGovt },
@@ -152,12 +160,16 @@ export default function CourseFeeCreation() {
 
   // --- SEARCH & PAGINATION LOGIC ---
   const filteredFees = fees.filter(fee => 
-    fee.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (fee.course && fee.course.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (fee.batch && fee.batch.toLowerCase().includes(searchTerm.toLowerCase())) ||
     fee.caste.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredFees.length / itemsPerPage);
   const paginatedFees = filteredFees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Check if base info is filled so the form opens
+  const isBaseInfoFilled = formData.course && formData.batch;
 
   // Reusable Input Component for Fees
   const FeeInput = ({ section, field, label }) => (
@@ -211,9 +223,8 @@ export default function CourseFeeCreation() {
                     <p className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-1">Step 1: Download Format</p>
                     <p className="text-[11px] text-gray-500 font-medium">Get the required Excel template.</p>
                   </div>
-                  {/* Assumes file is at public/formats/Fee_Structure_Bulk_Format.xlsx */}
                   <a href="/formats/Fee_Structure_Bulk_Format.xlsx" download className="px-4 py-2 bg-white border border-[#EE6132] text-[#EE6132] text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4-4m4 4V4"></path></svg>
                     Download .xlsx
                   </a>
                 </div>
@@ -296,26 +307,37 @@ export default function CourseFeeCreation() {
               
               <form onSubmit={handleSubmit} className="space-y-8">
                 
-                {/* Initial Step: Course Selection */}
-                <div className="max-w-xl">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Target Course <span className="text-red-500">*</span></label>
-                  <select
-                    name="course" value={formData.course} onChange={handleTopLevelChange} required
-                    className="w-full px-4 py-3.5 mt-1.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-bold text-gray-900 appearance-none shadow-sm cursor-pointer"
-                  >
-                    <option value="" disabled>Select Target Course First...</option>
-                    <option value="B.A First Year">B.A First Year</option>
-                    <option value="BA FIRST YEAR HOME SCIENCE">BA FIRST YEAR HOME SCIENCE</option>
-                    <option value="B.SC .B.C.A first year">B.SC .B.C.A first year</option>
-                    <option value="B.Sc. B.C.A Secound / Third Renewal">B.Sc. B.C.A Secound / Third Renewal</option>
-                    <option value="B.com First year">B.com First year</option>
-                    <option value="B.com Second / Third Renewal">B.com Second / Third Renewal</option>
-                  </select>
+                {/* Initial Step: Target Course Selection */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5 md:col-span-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Course Program <span className="text-red-500">*</span></label>
+                      <select name="course" value={formData.course} onChange={handleTopLevelChange} required className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-bold text-gray-900 appearance-none shadow-sm cursor-pointer">
+                        <option value="" disabled>Select Course Program...</option>
+                        <option value="Bachelor of Technology">Bachelor of Technology</option>
+                        <option value="Bachelor of Commerce">Bachelor of Commerce</option>
+                        <option value="Bachelor of Arts">Bachelor of Arts</option>
+                        <option value="Bachelor of Science">Bachelor of Science</option>
+                        <option value="Bachelor of Computer Applications">Bachelor of Computer Applications</option>
+                        <option value="Master of Business Administration">Master of Business Administration</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Batch Year <span className="text-red-500">*</span></label>
+                      <select name="batch" value={formData.batch} onChange={handleTopLevelChange} required className="w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-bold text-gray-900 appearance-none shadow-sm cursor-pointer">
+                        <option value="" disabled>Select Batch Year...</option>
+                        <option value="2026-2030">2026-2030 (4 Years)</option>
+                        <option value="2026-2029">2026-2029 (3 Years)</option>
+                        <option value="2026-2028">2026-2028 (2 Years)</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Progressive Expansion: Only show details if course is selected */}
+                {/* Progressive Expansion: Only show details if ALL target info is selected */}
                 <AnimatePresence>
-                  {formData.course && (
+                  {isBaseInfoFilled && (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                       className="space-y-10 border-t border-gray-100 pt-8"
@@ -331,14 +353,15 @@ export default function CourseFeeCreation() {
                               <option value="" disabled>Select Caste</option>
                               <option value="SC/ST">SC / ST</option>
                               <option value="OBC/UR">OBC / UR</option>
+                              <option value="General">General</option>
                             </select>
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Gender Rule <span className="text-red-500">*</span></label>
                             <select name="gender" value={formData.gender} onChange={handleTopLevelChange} required className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl focus:outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all font-medium text-gray-900 appearance-none cursor-pointer">
                               <option value="" disabled>Select Gender</option>
-                              <option value="Male">Male Only</option>
-                              <option value="Female">Female Only</option>
+                              <option value="Male Only">Male Only</option>
+                              <option value="Female Only">Female Only</option>
                               <option value="Male / Female Both">Male / Female Both</option>
                             </select>
                           </div>
@@ -381,7 +404,7 @@ export default function CourseFeeCreation() {
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FeeInput section="others" field="jb" label="JB" />
-                            <FeeInput section="others" field="sf" label="SF" />
+                            <FeeInput section="others" field="sf" label="SB (SF)" />
                           </div>
                         </div>
 
@@ -418,7 +441,7 @@ export default function CourseFeeCreation() {
             </div>
             <input
               type="text"
-              placeholder="Search by course or caste..."
+              placeholder="Search by course, batch, or caste..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#EE6132] focus:ring-2 focus:ring-[#EE6132]/20 transition-all text-sm font-medium text-gray-900 shadow-sm"
@@ -434,42 +457,76 @@ export default function CourseFeeCreation() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-white">
               <tr>
-                <th className="px-8 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest w-16">S.No</th>
-                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Course Focus</th>
-                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Target Demographics</th>
-                <th className="px-6 py-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Fee Aggregation</th>
-                <th className="px-8 py-5 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                <th rowSpan="2" className="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase tracking-widest border-b border-r border-gray-100 align-bottom">S.No</th>
+                <th rowSpan="2" className="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase tracking-widest border-b border-r border-gray-100 align-bottom">Course Name</th>
+                <th rowSpan="2" className="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase tracking-widest border-b border-r border-gray-100 align-bottom">Caste</th>
+                <th rowSpan="2" className="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase tracking-widest border-b border-r border-gray-100 align-bottom">Gender</th>
+                <th colSpan="4" className="px-6 py-3 text-center text-xs font-black text-[#EE6132] uppercase tracking-widest border-b border-r border-gray-100 bg-orange-50/30">Under Government</th>
+                <th colSpan="3" className="px-6 py-3 text-center text-xs font-black text-gray-700 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50">Under Private</th>
+                <th colSpan="2" className="px-6 py-3 text-center text-xs font-black text-gray-700 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50">Under Other</th>
+                <th rowSpan="2" className="px-6 py-4 text-right text-xs font-black text-gray-400 uppercase tracking-widest border-b border-r border-gray-100 align-bottom">Total</th>
+                <th rowSpan="2" className="px-6 py-4 text-right text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 align-bottom">Actions</th>
+              </tr>
+              <tr>
+                {/* Govt */}
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-orange-50/10">Add Fee</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-orange-50/10">STA</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-orange-50/10">Practical</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-orange-50/10">Tuition Fee</th>
+                {/* Pvt */}
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50/50">PD / AF</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50/50">CM</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50/50">Re-entry</th>
+                {/* Other */}
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50/50">JB</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-r border-gray-100 bg-gray-50/50">SB (SF)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               <AnimatePresence>
                 {paginatedFees.map((fee, index) => {
-                  const total = getFeeTotal(fee.fees);
                   return (
                     <motion.tr 
                       key={fee.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -10 }}
                       className="hover:bg-orange-50/30 transition-colors group"
                     >
-                      <td className="px-8 py-5 whitespace-nowrap text-sm font-bold text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-400 border-r border-gray-50">
                         {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
                       </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-bold text-gray-900">{fee.course}</p>
+                      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-50">
+                        <span className="text-sm font-bold text-gray-900 block">{fee.course}</span>
+                        <span className="text-[10px] font-bold text-[#EE6132] uppercase tracking-widest mt-0.5 block">Batch: {fee.batch}</span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="flex gap-2">
-                           <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.caste}</span>
-                           <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.gender}</span>
-                        </div>
+                      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-50">
+                         <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.caste}</span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="flex items-center gap-4">
-                          <p className="text-base font-black text-[#EE6132] font-mono tracking-tight">₹{total.toLocaleString('en-IN')}</p>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base Total</span>
-                        </div>
+                      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-50">
+                         <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200">{fee.gender}</span>
                       </td>
-                      <td className="px-8 py-5 whitespace-nowrap text-right">
+                      
+                      {/* Govt Columns */}
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50 bg-orange-50/5">{fee.fees.govt.addFee > 0 ? fee.fees.govt.addFee.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50 bg-orange-50/5">{fee.fees.govt.sta > 0 ? fee.fees.govt.sta.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50 bg-orange-50/5">{fee.fees.govt.practical > 0 ? fee.fees.govt.practical.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50 bg-orange-50/5">{fee.fees.govt.tuition > 0 ? fee.fees.govt.tuition.toLocaleString('en-IN') : '-'}</td>
+                      
+                      {/* Private Columns */}
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50">{fee.fees.nonGovt.pd_af > 0 ? fee.fees.nonGovt.pd_af.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50">{fee.fees.nonGovt.cm > 0 ? fee.fees.nonGovt.cm.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50">{fee.fees.nonGovt.reentry > 0 ? fee.fees.nonGovt.reentry.toLocaleString('en-IN') : '-'}</td>
+                      
+                      {/* Other Columns */}
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50">{fee.fees.others.jb > 0 ? fee.fees.others.jb.toLocaleString('en-IN') : '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-600 font-mono border-r border-gray-50">{fee.fees.others.sf > 0 ? fee.fees.others.sf.toLocaleString('en-IN') : '-'}</td>
+
+                      {/* Total */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right border-r border-gray-50 bg-gray-50/50">
+                        <span className="text-base font-black text-[#111111] font-mono tracking-tight">₹{getFeeTotal(fee.fees).toLocaleString('en-IN')}</span>
+                      </td>
+                      
+                      {/* Actions */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleEdit(fee)} className="p-2 text-gray-400 hover:text-[#EE6132] bg-white hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-lg transition-all shadow-sm">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
