@@ -23,6 +23,8 @@ import CourseFeeCreation from './pages/CourseFeeCreation';
 
 // --- MASTERS IMPORTS ---
 import MasterDomain from './pages/MasterDomain';
+import MasterAcademicYear from './pages/MasterAcademicYear'; // <-- NEW IMPORT
+import MasterCoursesBranches from './pages/MasterCoursesBranches';
 import Masters from './pages/Masters'; 
 
 // --- REPORTS IMPORTS ---
@@ -68,6 +70,8 @@ export default function App() {
 
           {/* Masters */}
           <Route path="/admin-dashboard/masters/domain" element={<MasterDomain />} /> 
+          <Route path="/admin-dashboard/masters/academic-year" element={<MasterAcademicYear />} />
+          <Route path="/admin-dashboard/masters/courses" element={<MasterCoursesBranches />} />
           <Route path="/admin-dashboard/masters/registration-buffer" element={<Masters />} />
         </Route>
 

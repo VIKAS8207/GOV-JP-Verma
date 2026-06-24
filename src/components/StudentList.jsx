@@ -12,6 +12,15 @@ const initialLogs = [
   { id: 'LOG-55456', type: 'Manual Entry', info: { name: 'Rohan Verma' }, course: 'B.A', branch: 'Home Science', semester: '1st Sem', status: 'Uploaded' },
 ];
 
+// Mapping of Courses to their respective Branches
+const branchMapping = {
+  'B.Tech': ['Computer Science', 'Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering', 'Information Technology'],
+  'BCA': ['Computer Applications', 'Data Analytics', 'Cloud Computing'],
+  'MBA': ['Marketing', 'Finance', 'Human Resources', 'International Business', 'Operations'],
+  'B.A': ['History', 'Political Science', 'English Literature', 'Home Science', 'Economics'],
+  'B.Com': ['Accounting', 'Taxation', 'Finance', 'General'],
+};
+
 export default function StudentList() {
   const [logs, setLogs] = useState(initialLogs);
   
@@ -29,14 +38,20 @@ export default function StudentList() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Form State (Updated with Gender, Branch, and Elective Subject)
+  // Form State
   const [formData, setFormData] = useState({
     name: '', fatherName: '', phone: '', email: '', city: '',
     category: '', gender: '', course: '', branch: '', year: '', semester: '', elective: ''
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // Reset branch if the course is changed so we don't hold invalid data
+    if (name === 'course') {
+      setFormData({ ...formData, course: value, branch: '' });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   // --- MANUAL ENTRY SUBMIT ---
@@ -159,7 +174,7 @@ export default function StudentList() {
                       <p className="text-[11px] text-gray-500 font-medium">Get the required Excel template.</p>
                     </div>
                     <a href="/formats/Student_Bulk_Format.xlsx" download className="px-4 py-2 bg-white border border-[#EE6132] text-[#EE6132] text-xs font-bold rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-sm">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4-4m4 4V4"></path></svg>
                       Download .xlsx
                     </a>
                   </div>
@@ -362,7 +377,19 @@ export default function StudentList() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Branch / Spec <span className="text-red-500">*</span></label>
-                    <input type="text" name="branch" value={formData.branch} onChange={handleChange} placeholder="e.g. Computer Science" className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 placeholder-gray-400" required />
+                    <select 
+                      name="branch" 
+                      value={formData.branch} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 bg-[#F8F9FA] border border-gray-200 rounded-xl outline-none focus:ring-0 focus:border-[#EE6132] focus:bg-white transition-colors font-medium text-gray-900 appearance-none cursor-pointer" 
+                      required
+                      disabled={!formData.course}
+                    >
+                      <option value="" disabled>{formData.course ? 'Select Branch' : 'Select Course First'}</option>
+                      {formData.course && branchMapping[formData.course] && branchMapping[formData.course].map(branch => (
+                        <option key={branch} value={branch}>{branch}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Year <span className="text-red-500">*</span></label>
@@ -393,7 +420,7 @@ export default function StudentList() {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button type="submit" className="px-10 py-3.5 bg-[#111111] text-white font-bold text-sm rounded-xl hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2">
+                  <button type="submit" className="px-10 py-3.5 bg-[#111111] text-white font-bold text-sm rounded-lg hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
                     Save Student Entry
                   </button>
@@ -522,7 +549,7 @@ export default function StudentList() {
                                Errors Found
                              </span>
                              <button className="text-[10px] font-bold text-[#EE6132] hover:text-[#d9562a] underline transition-colors flex items-center gap-1 mt-0.5">
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4-4m4 4V4"></path></svg>
                                Download Error Log
                              </button>
                            </>
