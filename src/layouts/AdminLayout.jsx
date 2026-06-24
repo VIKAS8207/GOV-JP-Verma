@@ -34,6 +34,7 @@ export default function AdminLayout() {
       children: [
         { name: 'Master Domain', path: '/admin-dashboard/masters/domain' },
         { name: 'Master Courses & Branches', path: '/admin-dashboard/masters/courses' },
+        { name: 'Master Elective Subjects', path: '/admin-dashboard/masters/electives' },
         { name: 'Master Academic Year', path: '/admin-dashboard/masters/academic-year' },
         { name: 'Registration Buffer', path: '/admin-dashboard/masters/registration-buffer' },
       ]
